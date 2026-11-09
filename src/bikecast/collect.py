@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +80,7 @@ def resolve_feeds(urls: list[str]) -> dict[str, str]:
 
 def run(out_dir: Path, urls: list[str] | None = None, max_age_seconds: int = DEFAULT_MAX_AGE_SECONDS) -> dict[str, Any]:
     urls = urls or gbfs.DEFAULT_GBFS_URLS
-    fetched_at = datetime.now(timezone.utc)
+    fetched_at = datetime.now(UTC)
 
     feeds = resolve_feeds(urls)
 

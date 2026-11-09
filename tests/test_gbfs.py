@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pyarrow.parquet as pq
 import pytest
@@ -65,17 +65,29 @@ VEHICLE_TYPES = {
 V3_INFO = {
     "data": {
         "stations": [
-            {"station_id": "1", "name": [{"text": "Schenley Plaza", "language": "en"}], "lat": 40.44, "lon": -79.95, "capacity": 12},
-            {"station_id": "2", "name": [{"text": "Station Deux", "language": "fr"}], "lat": 40.45, "lon": -79.96, "capacity": 12},
+            {
+                "station_id": "1",
+                "name": [{"text": "Schenley Plaza", "language": "en"}],
+                "lat": 40.44,
+                "lon": -79.95,
+                "capacity": 12,
+            },
+            {
+                "station_id": "2",
+                "name": [{"text": "Station Deux", "language": "fr"}],
+                "lat": 40.45,
+                "lon": -79.96,
+                "capacity": 12,
+            },
         ]
     }
 }
 
 
 def test_parse_ts_handles_epoch_iso_and_junk():
-    assert gbfs.parse_ts(1760000000) == datetime.fromtimestamp(1760000000, tz=timezone.utc)
-    assert gbfs.parse_ts("2026-10-21T13:00:00Z") == datetime(2026, 10, 21, 13, tzinfo=timezone.utc)
-    assert gbfs.parse_ts("2026-10-21T09:00:00-04:00") == datetime(2026, 10, 21, 13, tzinfo=timezone.utc)
+    assert gbfs.parse_ts(1760000000) == datetime.fromtimestamp(1760000000, tz=UTC)
+    assert gbfs.parse_ts("2026-10-21T13:00:00Z") == datetime(2026, 10, 21, 13, tzinfo=UTC)
+    assert gbfs.parse_ts("2026-10-21T09:00:00-04:00") == datetime(2026, 10, 21, 13, tzinfo=UTC)
     assert gbfs.parse_ts(None) is None
     assert gbfs.parse_ts("not a date") is None
     assert gbfs.parse_ts(0) is None
@@ -101,7 +113,7 @@ def test_parse_status_v3_splits_ebikes_via_vehicle_types():
     rows = gbfs.parse_station_status(V3_STATUS, ebike_ids)
     assert rows[0]["bikes_available"] == 5
     assert rows[0]["ebikes_available"] == 2
-    assert rows[0]["last_reported"] == datetime(2026, 10, 21, 12, 59, 30, tzinfo=timezone.utc)
+    assert rows[0]["last_reported"] == datetime(2026, 10, 21, 12, 59, 30, tzinfo=UTC)
     assert rows[1]["ebikes_available"] is None
 
 
@@ -117,7 +129,7 @@ def test_parse_station_information_v3_names():
 
 
 def test_validate_drops_bad_rows_and_flags_staleness():
-    now = datetime(2026, 10, 21, 13, 5, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 21, 13, 5, tzinfo=UTC)
     rows = [
         {"station_id": "1", "bikes_available": 3},
         {"station_id": "1", "bikes_available": 4},  # duplicate
@@ -139,7 +151,7 @@ def test_validate_drops_bad_rows_and_flags_staleness():
 
 def test_end_to_end_writes_parquet(tmp_path, monkeypatch):
     # Make the feed look fresh no matter when the test runs.
-    fresh = datetime.now(timezone.utc).isoformat()
+    fresh = datetime.now(UTC).isoformat()
     status = {**V3_STATUS, "last_updated": fresh}
     payloads = {
         "https://x.test/gbfs.json": V3_DISCOVERY,
